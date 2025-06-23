@@ -15,11 +15,11 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/your-db-name";
+    const mongoUri = process.env.MONGODB_URI ;
     await mongoose.connect(mongoUri);
-    console.log("✅ MongoDB connected");
+    console.log("MongoDB connected");
   } catch (err) {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("MongoDB connection error:", err);
     process.exit(1);
   }
 };
@@ -32,11 +32,11 @@ const deleteData = async () => {
     await User.deleteMany({});
     await Message.deleteMany({});
 
-    console.log("✅ All data deleted from User and Message collections.");
+    console.log("All data deleted from User and Message collections.");
     process.exit();
   } catch (err) {
     console.log("hello")
-    console.error("❌ Error deleting data:", err);
+    console.error("Error deleting data:", err);
     process.exit(1);
   }
 };
