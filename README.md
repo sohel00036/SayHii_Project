@@ -1,10 +1,8 @@
-Highlights:
+## ✨ Highlights
+- **Tech Stack**: MERN + Socket.IO + TailwindCSS + DaisyUI  
+- **Authentication & Authorization**: Secure login/register using **JWT**  
+- **Real-time Messaging**: Powered by **Socket.IO**  
+- **Online User Status**: Track active users live  
+- **Global State Management**: Simplified with **Zustand**  
+- **Error Handling**: Implemented on both **client & server**  
 
- Tech stack: MERN + Socket.io + TailwindCSS + Daisy UI,
- Authentication && Authorization with JWT,
- Real-time messaging with Socket.io,
- Online user status,
- Global state management with Zustand,
- Error handling both on the server and on the client,
- At the end Deployment like a pro for FREE!,
- And much more!.
