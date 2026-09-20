@@ -18,6 +18,10 @@ export function getReceiverSocketId(userId) {
 // used to store online users
 const userSocketMap = {}; // {userId: socketId}
 
+
+// this things is going to tell the user about the other logged in users and the green dot 
+// on the profile is going to show by the frontend using this funciton oly 
+
 io.on("connection", (socket) => {
   console.log("A user connected", socket.id);
 
