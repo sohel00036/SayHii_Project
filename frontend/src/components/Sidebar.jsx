@@ -2,21 +2,24 @@ import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
-import { Users, Bot } from "lucide-react";
+import { Users, Bot, Search, X } from "lucide-react";
 
 const Sidebar = () => {
   const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
 
   const { onlineUsers } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     getUsers();
   }, [getUsers]);
 
-  const filteredUsers = showOnlineOnly
-    ? users.filter((user) => user.isBot || onlineUsers.includes(user._id))
-    : users;
+  const filteredUsers = users.filter((user) => {
+    const matchesOnline = showOnlineOnly ? (user.isBot || onlineUsers.includes(user._id)) : true;
+    const matchesName = user.fullName.toLowerCase().includes(searchQuery.toLowerCase().trim());
+    return matchesOnline && matchesName;
+  });
 
   if (isUsersLoading) return <SidebarSkeleton />;
 
@@ -27,6 +30,28 @@ const Sidebar = () => {
           <Users className="size-6" />
           <span className="font-medium hidden lg:block">Contacts</span>
         </div>
+
+        {/* Search input for contacts */}
+        <div className="mt-3 relative hidden lg:block">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+          <input
+            type="text"
+            placeholder="Search contacts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input input-sm input-bordered w-full pl-9 pr-8 text-sm focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Online filter toggle */}
         <div className="mt-3 hidden lg:flex items-center gap-2">
           <label className="cursor-pointer flex items-center gap-2">
             <input
@@ -90,7 +115,7 @@ const Sidebar = () => {
         })}
 
         {filteredUsers.length === 0 && (
-          <div className="text-center text-zinc-500 py-4">No contacts found</div>
+          <div className="text-center text-zinc-500 py-4 text-sm">No contacts found</div>
         )}
       </div>
     </aside>

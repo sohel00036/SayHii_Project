@@ -39,26 +39,72 @@ export const useChatStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
       set({ messages: [...messages, res.data] });
+
+      // Move contact to top of human list in sidebar
+      get().updateUserOrder(selectedUser._id, res.data.createdAt);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to send message");
     }
   },
 
-  subscribeToMessages: () => {
-    const { selectedUser } = get();
-    if (!selectedUser) return;
+  // Helper to reorder contact list putting updatedUser at top of human list (below bot)
+  updateUserOrder: (userId, messageTime = new Date().toISOString()) => {
+    const { users } = get();
+    if (!users || users.length === 0 || !userId) return;
 
+    const targetUser = users.find((u) => u._id.toString() === userId.toString());
+    if (!targetUser) return;
+
+    // Do not reorder if it's the bot user (bot stays pinned at top)
+    if (targetUser.isBot) return;
+
+    // Update target user's lastMessageTime
+    const updatedTargetUser = { ...targetUser, lastMessageTime: messageTime };
+
+    // Filter out target user
+    const remainingUsers = users.filter((u) => u._id.toString() !== userId.toString());
+
+    // Separate bot and human users
+    const botUsers = remainingUsers.filter((u) => u.isBot);
+    const humanUsers = remainingUsers.filter((u) => !u.isBot);
+
+    // Place target user at top of human users list (below bot)
+    const newUsers = [...botUsers, updatedTargetUser, ...humanUsers];
+    set({ users: newUsers });
+  },
+
+  subscribeToMessages: () => {
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
+    // Clean up existing handlers to avoid duplicates
+    socket.off("newMessage");
+    socket.off("aiMessageChunk");
+    socket.off("aiMessageDone");
+
     // Listen for standard messages
     socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelectedUser) return;
+      const { selectedUser, messages } = get();
+      const authUserId = useAuthStore.getState().authUser?._id?.toString();
 
-      const { messages } = get();
-      // Skip if message already exists (e.g. replaced by aiMessageDone)
-      if (messages.some((m) => m._id === newMessage._id)) return;
+      const senderIdStr = (newMessage.senderId?._id || newMessage.senderId).toString();
+      const receiverIdStr = (newMessage.receiverId?._id || newMessage.receiverId).toString();
+
+      // Reorder sidebar contacts for both sender and receiver
+      const otherUserId = senderIdStr === authUserId ? receiverIdStr : senderIdStr;
+      if (otherUserId) {
+        get().updateUserOrder(otherUserId, newMessage.createdAt);
+      }
+
+      if (!selectedUser) return;
+      const selectedUserIdStr = selectedUser._id.toString();
+
+      // Only add message if it belongs to the active conversation
+      const isRelevant = senderIdStr === selectedUserIdStr || receiverIdStr === selectedUserIdStr;
+      if (!isRelevant) return;
+
+      // Skip if message already exists
+      if (messages.some((m) => m._id.toString() === newMessage._id.toString())) return;
 
       set({
         messages: [...messages, newMessage],
@@ -67,10 +113,12 @@ export const useChatStore = create((set, get) => ({
 
     // Listen for AI streaming token chunks
     socket.on("aiMessageChunk", (chunkData) => {
-      const { tempMessageId, senderId, textChunk, fullText } = chunkData;
-      if (senderId !== selectedUser._id) return;
+      const { selectedUser, messages } = get();
+      if (!selectedUser) return;
 
-      const { messages } = get();
+      const { tempMessageId, senderId, textChunk, fullText } = chunkData;
+      if (senderId.toString() !== selectedUser._id.toString()) return;
+
       const existingIndex = messages.findIndex((m) => m._id === tempMessageId);
 
       if (existingIndex !== -1) {
@@ -95,9 +143,11 @@ export const useChatStore = create((set, get) => ({
 
     // Listen for AI streaming completion
     socket.on("aiMessageDone", ({ tempMessageId, message }) => {
-      if (message.senderId !== selectedUser._id) return;
+      const { selectedUser, messages } = get();
+      if (!selectedUser) return;
 
-      const { messages } = get();
+      if (message.senderId.toString() !== selectedUser._id.toString()) return;
+
       const existingIndex = messages.findIndex((m) => m._id === tempMessageId || m._id === message._id);
 
       if (existingIndex !== -1) {
