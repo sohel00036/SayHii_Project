@@ -1,10 +1,14 @@
-import { X } from "lucide-react";
+import { X, Bot } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser } = useChatStore();
   const { onlineUsers } = useAuthStore();
+
+  if (!selectedUser) return null;
+
+  const isOnline = selectedUser.isBot || onlineUsers.includes(selectedUser._id);
 
   return (
     <div className="p-2.5 border-b border-base-300">
@@ -19,9 +23,17 @@ const ChatHeader = () => {
 
           {/* User info */}
           <div>
-            <h3 className="font-medium">{selectedUser.fullName}</h3>
+            <h3 className="font-medium flex items-center gap-1.5">
+              <span>{selectedUser.fullName}</span>
+              {selectedUser.isBot && (
+                <span className="badge badge-primary badge-xs text-[10px] font-bold py-0.5 px-1 flex items-center gap-0.5">
+                  <Bot className="size-3" />
+                  AI
+                </span>
+              )}
+            </h3>
             <p className="text-sm text-base-content/70">
-              {onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}
+              {selectedUser.isBot ? "Always Available" : isOnline ? "Online" : "Offline"}
             </p>
           </div>
         </div>
